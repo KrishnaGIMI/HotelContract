@@ -1,0 +1,82 @@
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.13;
+
+contract Hotel{
+    address public owner;
+    constructor(){
+        owner = payable(msg.sender);
+    }
+    
+    event payment(address payee, uint256 amount);
+
+    enum Availability  {
+        VACANT,
+        BOOKED
+    }
+
+    struct Guests{
+        string name;
+        uint256 age;
+        string dateOfCheckin;
+        uint256 price;
+    }
+
+    struct Rooms{
+        string typeOfRoom;
+        uint256 numberOfBeds;
+        Availability availability;
+        uint256 price;
+    }
+
+    uint256[] roomList;
+
+    mapping(uint256 => Rooms) public NumberToRoom;
+    mapping(uint256 => Guests) public roomToGuest;
+
+    //modifiers
+    modifier checkRoomAvailability(uint256 _roomNumber){
+        // require(NumberToRoom[_roomNumber].availability == Availability.BOOKED, "Not available");
+        _;
+    }
+    modifier isOwner(){
+        require(owner != msg.sender, "You r nt the oner ");
+        _;
+    }
+    
+    // function payforRoom() public payable{
+    //     ( bool txnSuccess, ) = owner.call{ value: msg.value }('');
+    //     require(txnSuccess == true, "Transaction failed");
+    // }
+
+    function getBalance() public view returns(uint256){
+        return owner.balance;
+    }
+    function addRoom(uint256 _roomNumber, string memory _typeOfRoom, uint256 _numberOfBeds, uint256 _price) public isOwner{
+        Rooms memory room =  Rooms(_typeOfRoom, _numberOfBeds, Availability.VACANT, _price);
+        NumberToRoom[_roomNumber] = room;
+        roomList.push(_roomNumber);
+    }
+
+    //get Names
+    function getRooms() public view returns(uint256[] memory){
+        return roomList;
+    }
+
+    //room availability
+    function getRoomAvailability(uint256 _roomNumber) public view returns(Availability ){
+        // require( NumberToRoom[_roomNumber].availability == Availability.BOOKED, " Not available " );
+        return NumberToRoom[_roomNumber].availability;
+    }
+
+    function checkin(uint256 _roomNumber, string memory _name, uint256 _age, string memory _dateOfCheckin, uint256 _price) public payable checkRoomAvailability(_roomNumber)
+    {
+        ( bool txnSuccess, ) = owner.call{ value: msg.value }('');
+        require(txnSuccess == true, "Transaction failed");
+        emit payment(msg.sender, msg.value);
+        Guests memory guest = Guests(_name, _age, _dateOfCheckin, _price);
+        roomToGuest[_roomNumber] = guest;
+        NumberToRoom[_roomNumber].availability = Availability.BOOKED;
+    }
+
+    
+}
